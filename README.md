@@ -20,20 +20,6 @@ En cada ciclo universitario, los estudiantes se ven en la necesidad de adquirir 
 
 ---
 
-## 📸 Capturas de la Interfaz
-
-### 1. Pantalla de Inicio y Exploración (Marketplace)
-Exploración de productos en tendencia, filtrado por categorías universitarias, acceso rápido a publicación y navegación integrada.
-
-![Inicio AlToque](./docs/screenshots/home-preview.jpg)
-
-### 2. Acceso y Autenticación de Estudiantes
-Diseño estilizado con validación de credenciales universitarias y presentación ilustrativa.
-
-![Acceso AlToque](./docs/screenshots/login-preview.jpg)
-
----
-
 ## 🚀 Tecnologías Utilizadas
 
 El proyecto está desarrollado con las tecnologías más modernas del ecosistema frontend:
