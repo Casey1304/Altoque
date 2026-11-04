@@ -1,0 +1,6 @@
+.input-focus-ring:focus-within {
+  outline: 2px solid #6ff7f6;
+  outline-offset: -1px;
+  box-shadow: 0 0 10px rgba(111, 247, 246, 0.3);
+}
+
