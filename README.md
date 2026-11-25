@@ -2,6 +2,8 @@
 
 Prototipo de Nexu S.A.C. para estudiantes de la Universidad Tecnológica del Perú, sede Lima Norte. El marketplace C2C facilita la compra, venta e intercambio de recursos académicos de segunda mano. Los estudiantes coordinan el acuerdo, el pago y la entrega entre ellos.
 
+[Abrir Altoque en producción](https://altoque-woad.vercel.app/) · [Código fuente](https://github.com/Casey1304/Altoque)
+
 ## Problema y público objetivo
 
 Cada ciclo, los estudiantes necesitan materiales que pueden ser costosos o difíciles de conseguir. Los grupos informales dispersan las ofertas y dificultan encontrar recursos por curso o comparar su estado. Altoque reúne las publicaciones y facilita el contacto entre estudiantes de UTP Lima Norte.
@@ -70,13 +72,23 @@ El administrador puede revisar reportes, consultar el historial de mediación y 
 
 La capa de persistencia en `src/services/storage.js` conserva los datos por origen del navegador. Inicializa claves faltantes, mantiene el catálogo y los registros administrativos previos, y asigna a la cuenta de prueba los datos personales de versiones que carecían de propietario. Las contraseñas nuevas se guardan como verificadores de demostración. Una cuenta antigua con contraseña en texto se migra al iniciar sesión correctamente.
 
-La sesión, roles, pagos y validación institucional se simulan íntegramente en el frontend. No ingreses contraseñas reales, datos bancarios o documentos institucionales. Chat y datos se comparten entre las cuentas de un mismo origen y almacenamiento del navegador. Las imágenes locales tienen un límite de 1 MB por archivo y están sujetas a la cuota del navegador. Las imágenes y fuentes remotas dependen de la conectividad.
+La sesión, roles, pagos y validación institucional se simulan íntegramente en el frontend. LocalStorage almacena los datos de la demostración por navegador y dominio. El proyecto carece de un backend de producción. No ingreses contraseñas reales, datos bancarios o documentos institucionales. Chat y datos se comparten entre las cuentas de un mismo origen y almacenamiento del navegador. Las imágenes locales tienen un límite de 1 MB por archivo y están sujetas a la cuota del navegador. Las imágenes y fuentes remotas dependen de la conectividad.
 
 Una versión con backend debe incorporar autenticación y autorización del servidor, verificación institucional, base de datos y almacenamiento de imágenes, sincronización entre dispositivos, bitácora de auditoría y monitoreo de disponibilidad.
 
 ## Despliegue
 
 Vercel compila la rama `main` con el preset Vite, ejecuta `npm ci` y `npm run build`, y sirve `dist/`. El repositorio de GitHub contiene el frontend en su raíz. La configuración de la SPA permite abrir directamente rutas como `/login` o `/admin/reportes`.
+
+## Capturas de producción
+
+**Marketplace estudiantil**
+
+![Catálogo de Altoque con búsqueda, filtros y publicaciones](docs/screenshots/marketplace-actual.png)
+
+**Reportes e incidencias**
+
+![Expediente de demostración INC-1042 con la calculadora y las dos evidencias simuladas](docs/screenshots/reportes-actual.png)
 
 ## Licencia
 
