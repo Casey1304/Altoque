@@ -1,24 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import TopNavBar from '../../components/layout/TopNavBar/TopNavBar';
 import BottomNavBar from '../../components/layout/BottomNavBar/BottomNavBar';
 import { getChats, sendChatMessage } from '../../services/storage';
 import './Messages.css';
+import { useStorageRefresh } from '../../services/useStorageRefresh';
 
 export default function Messages() {
-  const [chats, setChats] = useState([]);
+  useStorageRefresh();
+  const chats = getChats();
+  const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('compras');
   const [activeChatId, setActiveChatId] = useState(null);
   const [messageText, setMessageText] = useState('');
   const [searchChat, setSearchChat] = useState('');
 
-  useEffect(() => {
-    const loadedChats = getChats();
-    setChats(loadedChats);
-    if (loadedChats.length > 0 && !activeChatId) {
-      setActiveChatId(loadedChats[0].id);
-    }
-  }, []);
 
   const currentChats = chats.filter(c => {
     const matchesTab = c.type === activeTab;
@@ -28,20 +24,25 @@ export default function Messages() {
     return matchesTab && matchesSearch;
   });
 
-  const activeChat = chats.find(c => c.id === activeChatId) || currentChats[0];
+  const activeChat = currentChats.find(c => c.id === activeChatId) || currentChats[0];
 
   const handleSend = (e) => {
     e.preventDefault();
     if (!messageText.trim() || !activeChat) return;
 
-    const updated = sendChatMessage(activeChat.id, messageText.trim());
-    setChats(updated);
-    setMessageText('');
+    try {
+      sendChatMessage(activeChat.id, messageText);
+      setMessageText('');
+      setError('');
+    } catch (error) {
+      setError(error.message);
+    }
   };
 
   return (
     <div className="h-screen flex flex-col bg-background text-on-background font-sans antialiased overflow-hidden">
       <TopNavBar />
+      {error && <p className="fixed z-50 bottom-20 left-4 bg-error-container p-3 rounded" role="alert">{error}</p>}
 
       <div className="flex flex-1 pt-16 pb-16 lg:pb-0 h-[calc(100vh-64px)] overflow-hidden">
         {/* Left Panel: Chat List */}

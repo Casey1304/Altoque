@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import MainLayout from '../../components/layout/MainLayout/MainLayout';
-import { saveNewProduct } from '../../services/storage';
+import { saveNewProduct, editProduct, getMyListings, getCategories } from '../../services/storage';
 import './SellProduct.css';
 
 export default function SellProduct() {
   const navigate = useNavigate();
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('');
-  const [condition, setCondition] = useState('Como Nuevo');
-  const [price, setPrice] = useState('');
-  const [meetingPoint, setMeetingPoint] = useState('Entrada Principal - Campus Central');
-  const [description, setDescription] = useState('');
-  const [imagePreview, setImagePreview] = useState(null);
+  const { id } = useParams();
+  const original = id ? getMyListings().find(item => String(item.id) === id) : null;
+  const [type, setType] = useState(original?.type || 'venta');
+  const [faculty, setFaculty] = useState(original?.faculty || '');
+  const [course, setCourse] = useState(original?.course || '');
+  const [title, setTitle] = useState(original?.title || '');
+  const [category, setCategory] = useState(original?.category || '');
+  const [condition, setCondition] = useState(original?.condition || 'Como Nuevo');
+  const [price, setPrice] = useState(original?.price ?? '');
+  const [meetingPoint, setMeetingPoint] = useState(original?.meetingPoint || 'Entrada Principal - Campus Lima Norte');
+  const [description, setDescription] = useState(original?.description || '');
+  const [imagePreview, setImagePreview] = useState(original?.image || null);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -20,8 +25,8 @@ export default function SellProduct() {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError('La imagen supera los 5MB permitidos.');
+      if (!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type) || file.size > 1024 * 1024) {
+        setError('Carga una imagen JPG, PNG, WebP o GIF de hasta 1 MB.');
         return;
       }
       const reader = new FileReader();
@@ -37,36 +42,35 @@ export default function SellProduct() {
     e.preventDefault();
     setError('');
 
-    if (!title.trim() || !category || !price) {
+    if (!title.trim() || !category || (type === 'venta' && price === '')) {
       setError('Por favor completa el título, categoría y precio.');
       return;
     }
 
     setSubmitting(true);
 
-    const categoryLabels = {
-      libros: 'Libros de texto',
-      electronica: 'Electrónica',
-      laboratorio: 'Equipo de Laboratorio',
-      papeleria: 'Papelería'
-    };
-
-    const newProd = saveNewProduct({
+    try {
+    if (id && !original) throw new Error('Esta publicación no te pertenece.');
+    const changes = {
       title: title.trim(),
       category,
-      categoryLabel: categoryLabels[category] || 'General',
+      categoryLabel: getCategories().find(item => item.id === category)?.name || category,
+      type, faculty: faculty.trim(), course: course.trim(),
       condition,
-      price: parseFloat(price) || 0,
+      price: type === 'venta' ? Number(price) : 0,
       meetingPoint: meetingPoint.trim(),
       description: description.trim() || 'Artículo universitario en buen estado.',
       image: imagePreview || "https://lh3.googleusercontent.com/aida-public/AB6AXuBENRdOAHcy_RbVJjeklHw3c2bVSjMGAExYFUe3wwBDs1P2XVWcH_HlTkb7hZKoPOxf7kOz_FHDEVi-m8LWhLPgIeoehp3h3x5dN-DFr3TvMIxEfSCsdll0E7S6lOqx5PIYoYXHbOE3qb4wbT2EGNnwXKTSo71EZKk0sErrm06d2gvzGxqAYZWLyo8J16tYTXxbKEt_ecdkbxIMbCXZpZmOFGaej0s9VdPMpbNXVt1x5nghEGmgPpY1",
       thumbnails: imagePreview ? [imagePreview] : []
-    });
-
-    setTimeout(() => {
+    };
+    if (original) editProduct(id, changes);
+    else saveNewProduct(changes);
+    navigate('/mis-compras');
+    } catch (error) {
+      setError(error.message);
+    } finally {
       setSubmitting(false);
-      navigate(`/producto/${newProd.id}`);
-    }, 400);
+    }
   };
 
   return (
@@ -75,7 +79,7 @@ export default function SellProduct() {
         {/* Page Header */}
         <div className="mb-stack-lg text-center md:text-left">
           <h1 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary font-bold mb-1">
-            Publicar Nuevo Artículo
+            {id ? 'Editar publicación' : 'Publicar nuevo artículo'}
           </h1>
           <p className="font-body-md text-body-md text-on-surface-variant">
             Completa los detalles para que otros estudiantes encuentren tu producto "Al Toque".
@@ -92,7 +96,11 @@ export default function SellProduct() {
         {/* Form Card */}
         <div className="bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(11,61,89,0.05)] border border-outline-variant/30 p-6 md:p-8 relative overflow-hidden">
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            {/* 1. Product Title */}
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label>Modalidad <select className="w-full border rounded p-2" value={type} onChange={event => setType(event.target.value)}><option value="venta">Venta</option><option value="intercambio">Intercambio</option></select></label>
+              <label>Facultad <input className="w-full border rounded p-2" value={faculty} onChange={event => setFaculty(event.target.value)} /></label>
+              <label>Curso <input className="w-full border rounded p-2" value={course} onChange={event => setCourse(event.target.value)} /></label>
+            </div>
             <div className="flex flex-col gap-1">
               <label className="font-label-bold text-label-bold text-on-surface" htmlFor="title">
                 Título del producto *
@@ -144,7 +152,7 @@ export default function SellProduct() {
                     Haz clic para subir una foto real desde tu dispositivo
                   </span>
                   <span className="font-body-sm text-body-sm text-on-surface-variant">
-                    JPG, PNG o WEBP. Máximo 5MB.
+                    JPG, PNG, WebP o GIF. Máximo 1 MB.
                   </span>
                 </label>
               )}
@@ -166,10 +174,7 @@ export default function SellProduct() {
                     required
                   >
                     <option disabled value="">Selecciona una categoría</option>
-                    <option value="libros">Libros de Texto</option>
-                    <option value="electronica">Electrónica</option>
-                    <option value="laboratorio">Equipo de Laboratorio</option>
-                    <option value="papeleria">Papelería</option>
+                    {getCategories().map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-on-surface-variant">
                     <span className="material-symbols-outlined text-[20px]">expand_more</span>
@@ -218,6 +223,7 @@ export default function SellProduct() {
                     step="0.5"
                     min="1"
                     value={price}
+                    disabled={type === 'intercambio'}
                     onChange={(e) => setPrice(e.target.value)}
                     required
                   />
@@ -264,7 +270,7 @@ export default function SellProduct() {
                 className="w-full py-4 bg-secondary text-on-secondary font-label-bold text-label-bold rounded-lg hover:bg-secondary-fixed transition-colors active:scale-95 duration-150 shadow-md flex items-center justify-center gap-2 text-base disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-[20px]">add_circle</span>
-                <span>{submitting ? 'Publicando en AlToque...' : 'Publicar Producto Ahora'}</span>
+                <span>{submitting ? 'Publicando en AlToque...' : id ? 'Guardar cambios' : 'Publicar artículo'}</span>
               </button>
             </div>
           </form>

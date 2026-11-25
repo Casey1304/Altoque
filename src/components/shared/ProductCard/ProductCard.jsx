@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { isFavorite, toggleFavorite } from '../../../services/storage';
+import { isFavorite, toggleFavorite, getCurrentUser } from '../../../services/storage';
 import './ProductCard.css';
 
 export default function ProductCard({ 
@@ -11,6 +11,8 @@ export default function ProductCard({
   title, 
   condition, 
   price,
+  featured = false,
+  type,
   currency = "S/",
   className = ""
 }) {
@@ -21,13 +23,22 @@ export default function ProductCard({
     if (id) {
       setFavorite(isFavorite(id));
     }
+
+    const handleStorageUpdate = (e) => {
+      if (e.detail?.type === 'favorites_updated' || e.detail?.type === 'external') {
+        setFavorite(isFavorite(id));
+      }
+    };
+    window.addEventListener('altoque_storage_update', handleStorageUpdate);
+    return () => window.removeEventListener('altoque_storage_update', handleStorageUpdate);
   }, [id]);
 
   const handleFavoriteClick = (e) => {
     e.stopPropagation();
+    if (!getCurrentUser()) return navigate("/login");
     if (id) {
       const updated = toggleFavorite(id);
-      setFavorite(updated.includes(Number(id)));
+      setFavorite(updated.includes(String(id)));
     }
   };
 
@@ -55,7 +66,8 @@ export default function ProductCard({
           src={image} 
           loading="lazy"
         />
-        <button 
+        {featured && <span className="absolute left-2 top-2 rounded bg-secondary px-2 py-1 text-xs text-on-secondary">Destacado</span>}
+        <button
           onClick={handleFavoriteClick}
           aria-label="Guardar en favoritos"
           className="absolute top-2 right-2 w-8 h-8 rounded-full bg-surface/80 backdrop-blur-sm flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error-container transition-colors shadow-sm"
@@ -95,7 +107,7 @@ export default function ProductCard({
         </p>
 
         <div className="mt-4 pt-4 border-t border-surface-container-high flex items-center justify-between">
-          <span className="font-headline-md text-headline-md text-primary font-bold">{formattedPrice}</span>
+          <span className="font-headline-md text-headline-md text-primary font-bold">{type === 'intercambio' ? 'Intercambio' : formattedPrice}</span>
           <button 
             onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
             className="px-4 py-2 rounded bg-secondary text-on-secondary font-label-bold text-label-bold hover:bg-secondary-container hover:text-on-secondary-container transition-colors active:scale-95 duration-150"

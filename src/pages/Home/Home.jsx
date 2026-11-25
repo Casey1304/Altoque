@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import MainLayout from '../../components/layout/MainLayout/MainLayout';
 import ProductCard from '../../components/shared/ProductCard/ProductCard';
-import { getProducts } from '../../services/storage';
+import { getPublicProducts, getCategories } from '../../services/storage';
+import { AdPlacement } from '../Services/Services';
+import { useStorageRefresh } from '../../services/useStorageRefresh';
 import './Home.css';
 
 export default function Home() {
@@ -10,21 +12,17 @@ export default function Home() {
   const navigate = useNavigate();
   const query = searchParams.get('q') || '';
 
-  const [products, setProducts] = useState([]);
-
-  useEffect(() => {
-    setProducts(getProducts());
-  }, []);
-
-  // Filtrado por búsqueda si el usuario ingresó algo en la barra
-  const displayProducts = products.filter((product) => {
-    if (!query) return true;
-    return (
-      product.title.toLowerCase().includes(query.toLowerCase()) ||
-      (product.categoryLabel && product.categoryLabel.toLowerCase().includes(query.toLowerCase())) ||
-      (product.description && product.description.toLowerCase().includes(query.toLowerCase()))
-    );
-  });
+  useStorageRefresh();
+  const products = getPublicProducts();
+  const [filters, setFilters] = useState({ category: '', faculty: '', course: '', condition: '', max: '' });
+  const displayProducts = products.filter(product =>
+    [product.title, product.categoryLabel, product.description, product.course].some(value => value?.toLowerCase().includes(query.toLowerCase())) &&
+    (!filters.category || product.category === filters.category) &&
+    (!filters.faculty || product.faculty === filters.faculty) &&
+    (!filters.course || product.course === filters.course) &&
+    (!filters.condition || product.condition === filters.condition) &&
+    (!filters.max || Number(product.price) <= Number(filters.max)));
+  const updateFilter = (key, value) => setFilters(current => ({ ...current, [key]: value }));
 
   const scrollToProducts = () => {
     const el = document.getElementById('products-section');
@@ -41,7 +39,7 @@ export default function Home() {
             Encuentra lo que necesitas, Al Toque.
           </h1>
           <p className="font-body-md text-body-md text-on-primary opacity-90 mb-stack-md">
-            El mercado confiable para estudiantes universitarios. Compra y vende recursos de forma segura y al instante.
+            El mercado confiable para estudiantes universitarios. Compra, vende e intercambia recursos. Coordina la entrega con otros estudiantes.
           </p>
           <button 
             onClick={scrollToProducts}
@@ -70,17 +68,31 @@ export default function Home() {
         </div>
       )}
 
+      <AdPlacement />
+      <div className="service-page">
+        <section className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5" aria-label="Filtros de catálogo">
+          <label>Categoría <select value={filters.category} onChange={event => updateFilter('category', event.target.value)}>
+            <option value="">Todas</option>{getCategories().map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select></label>
+          {[['faculty','Facultad'], ['course','Curso'], ['condition','Estado']].map(([key, label]) =>
+            <label key={key}>{label} <select value={filters[key]} onChange={event => updateFilter(key, event.target.value)}>
+              <option value="">Todos</option>{[...new Set(products.map(item => item[key]).filter(Boolean))].sort().map(value => <option key={value}>{value}</option>)}
+            </select></label>)}
+          <label>Precio máximo en soles <input value={filters.max} onChange={event => updateFilter('max', event.target.value)} type="number" min="0" step="0.01" /></label>
+        </section>
+      </div>
       {/* Product Grid Section Header - Exacto a Stitch */}
       <div id="products-section" className="flex items-center justify-between mb-stack-md">
         <h3 className="font-headline-md text-headline-md text-primary font-bold">Tendencias</h3>
         <button 
-          onClick={() => navigate('/categoria/electronica')}
+          onClick={() => { setFilters({ category: '', faculty: '', course: '', condition: '', max: '' }); navigate('/'); }}
           className="text-secondary hover:text-primary transition-colors font-label-bold text-label-bold"
         >
           Ver todo
         </button>
       </div>
 
+      {!displayProducts.length && <p className="py-6">No se encontraron publicaciones.</p>}
       {/* Product Grid - Exacto a Stitch con moneda en Soles (S/) */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-gutter">
         {displayProducts.map((product) => (
@@ -90,7 +102,9 @@ export default function Home() {
             title={product.title}
             category={product.categoryLabel || product.category}
             condition={product.condition}
-            price={product.price}
+            price={Number(product.price)}
+            featured={product.featured}
+            type={product.type}
             currency={product.currency === '$' ? 'S/' : (product.currency || 'S/')}
             rating={product.rating}
             image={product.image}

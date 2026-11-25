@@ -1,16 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { getFavorites } from '../../../services/storage';
 import './BottomNavBar.css';
 
 export default function BottomNavBar() {
   const location = useLocation();
+  const [favoritesCount, setFavoritesCount] = useState(getFavorites().length);
+
+  useEffect(() => {
+    const handleStorageUpdate = () => {
+      setFavoritesCount(getFavorites().length);
+    };
+    window.addEventListener('altoque_storage_update', handleStorageUpdate);
+    return () => window.removeEventListener('altoque_storage_update', handleStorageUpdate);
+  }, []);
 
   const mobileLinks = [
     { to: '/', label: 'Inicio', icon: 'storefront', exact: true },
-    { to: '/mis-compras', label: 'Mis Anuncios', icon: 'list_alt' },
+    { to: '/favoritos', label: 'Favoritos', icon: 'favorite', badge: favoritesCount > 0 ? favoritesCount : null },
     { to: '/vender', label: 'Publicar', icon: 'add_circle' },
     { to: '/mensajes', label: 'Mensajes', icon: 'chat' },
-    { to: '/vendedor/seller-2', label: 'Perfil', icon: 'person' },
+    { to: '/mis-compras', label: 'Mi Perfil', icon: 'person' },
   ];
 
   return (
@@ -24,7 +34,7 @@ export default function BottomNavBar() {
           <NavLink
             key={item.to}
             to={item.to}
-            className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-transform active:scale-90 ${
+            className={`relative flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-transform active:scale-90 ${
               isActive 
                 ? 'text-secondary dark:text-secondary-fixed-dim font-bold' 
                 : 'text-on-surface-variant hover:bg-surface-container-high'
@@ -37,6 +47,11 @@ export default function BottomNavBar() {
               {item.icon}
             </span>
             <span className="font-label-caps text-[11px] mt-0.5">{item.label}</span>
+            {item.badge && (
+              <span className="absolute top-0 right-1.5 bg-error text-white rounded-full text-[9px] w-3.5 h-3.5 flex items-center justify-center font-bold">
+                {item.badge}
+              </span>
+            )}
           </NavLink>
         );
       })}

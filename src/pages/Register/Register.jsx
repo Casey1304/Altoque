@@ -28,10 +28,15 @@ export default function Register() {
     }
 
     setLoading(true);
-    setTimeout(() => {
-      registerUser({ fullName, email, university, password });
-      setLoading(false);
-      navigate('/');
+    setTimeout(async () => {
+      try {
+        await registerUser({ fullName, email, university, password });
+        navigate('/');
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
     }, 400);
   };
 
@@ -58,7 +63,7 @@ export default function Register() {
                 Únete a la comunidad
               </h1>
               <p className="font-body-md text-body-md text-on-surface-variant">
-                Crea tu cuenta para empezar a intercambiar al toque.
+                Usa un correo @utp.edu.pe y una contraseña creada para esta demostración.
               </p>
             </div>
 

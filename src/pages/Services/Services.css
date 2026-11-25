@@ -1,0 +1,24 @@
+
+.service-page { display: grid; gap: 1rem; max-width: 75rem; margin: 0 auto 1.5rem; min-width: 0; }
+.service-page h1 { font-size: clamp(1.65rem, 4vw, 2.4rem); font-weight: 800; color: #0b3d59; }
+.service-page h2, .service-page h3 { color: #0b3d59; font-weight: 750; margin-bottom: .45rem; }
+.service-page h2 { font-size: 1.2rem; }
+.service-page section, .service-page > article, .service-ad { background: #fff; border: 1px solid #c5d1d4; border-radius: .85rem; padding: clamp(.8rem, 3vw, 1.4rem); }
+.service-page section > article, .service-page details { border-top: 1px solid #d4dfe1; padding-block: .75rem; overflow-wrap: anywhere; }
+.service-page p { margin-block: .35rem; }
+.service-form { display: grid; gap: .65rem; margin-block: .6rem; max-width: 46rem; }
+.service-page label, .service-form label { display: grid; gap: .2rem; font-size: .9rem; font-weight: 650; }
+.service-page input, .service-page textarea, .service-page select, .service-form input, .service-form textarea, .service-form select { background: #fff; border: 1px solid #899fa4; border-radius: .4rem; padding: .45rem .55rem; max-width: 100%; min-width: 0; }
+.service-form button, .service-actions button { justify-self: start; border-radius: .4rem; background: #006a6a; color: #fff; padding: .45rem .75rem; }
+.service-page a, .service-actions a, .service-ad a { color: #006a6a; text-decoration: underline; }
+.service-actions { border-top: 1px solid #c5d1d4; margin-top: .7rem; padding-top: .7rem; }
+.service-actions p { margin-bottom: .45rem; }
+.service-ad { margin-bottom: 1rem; }
+.service-ad article { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: .65rem; }
+.service-ad img { width: 7rem; max-height: 5rem; object-fit: contain; }
+.service-ad small { font-weight: 750; }
+.service-indicators { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); gap: .65rem; }
+.service-indicators div { background: #eaf3f4; padding: .65rem; border-radius: .5rem; }
+.service-indicators dd { font-size: 1.25rem; font-weight: 750; }
+.service-page ul { list-style: disc; padding-left: 1.25rem; }
+.service-chart meter { width: min(100%, 24rem); }

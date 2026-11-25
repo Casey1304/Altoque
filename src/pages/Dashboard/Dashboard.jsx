@@ -1,3 +1,4 @@
+import { ListingActions, OperationHistory } from '../Services/Services';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import MainLayout from '../../components/layout/MainLayout/MainLayout';
@@ -7,13 +8,16 @@ import './Dashboard.css';
 export default function Dashboard() {
   const navigate = useNavigate();
   const [purchases, setPurchases] = useState([]);
-  const [listings, setListings] = useState([]);
+  const [listings, setListings] = useState(getMyListings);
   const [purchaseFilter, setPurchaseFilter] = useState('Todos');
 
   useEffect(() => {
     window.scrollTo(0, 0);
     setPurchases(getPurchases());
-    setListings(getMyListings());
+    const update = () => setListings(getMyListings());
+    update();
+    window.addEventListener('altoque_storage_update', update);
+    return () => window.removeEventListener('altoque_storage_update', update);
   }, []);
 
   const filteredPurchases = purchases.filter(p => {
@@ -25,6 +29,8 @@ export default function Dashboard() {
 
   return (
     <MainLayout>
+      <OperationHistory />
+      <Link to="/ayuda" className="text-secondary underline">Mi perfil y centro de ayuda</Link>
       <div className="py-4 md:py-8">
         {/* Mis Compras Header */}
         <header className="mb-stack-lg flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -149,7 +155,7 @@ export default function Dashboard() {
                       src={item.image} 
                     />
                     <div className="absolute top-2 left-2 bg-secondary-container text-on-secondary-container px-2 py-1 rounded font-label-caps text-label-caps uppercase tracking-wider font-bold">
-                      Activo
+                      {item.status === 'removed' ? 'Retirada' : 'Activa'}
                     </div>
                   </div>
 
@@ -171,17 +177,6 @@ export default function Dashboard() {
                     </div>
 
                     <div className="flex justify-between items-center mt-4 border-t border-outline-variant pt-4">
-                      <div className="flex items-center gap-stack-sm text-on-surface-variant">
-                        <div className="flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[18px]">visibility</span>
-                          <span className="font-body-sm text-body-sm">Reciente</span>
-                        </div>
-                        <div className="w-px h-3 bg-outline-variant mx-1"></div>
-                        <div className="flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[18px]">chat_bubble</span>
-                          <span className="font-body-sm text-body-sm">0</span>
-                        </div>
-                      </div>
                       <button 
                         onClick={() => navigate(`/producto/${item.id}`)}
                         className="text-secondary border border-secondary px-4 py-2 rounded font-label-bold text-label-bold hover:bg-surface-container-high transition-colors"
@@ -189,6 +184,7 @@ export default function Dashboard() {
                         Ver publicación
                       </button>
                     </div>
+                    <ListingActions item={item} />
                   </div>
                 </article>
               ))

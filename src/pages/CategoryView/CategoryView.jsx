@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import MainLayout from '../../components/layout/MainLayout/MainLayout';
 import ProductCard from '../../components/shared/ProductCard/ProductCard';
-import { getProducts } from '../../services/storage';
-import { INITIAL_CATEGORIES } from '../../services/mockData';
+import { getPublicProducts, getCategories } from '../../services/storage';
+import { useStorageRefresh } from '../../services/useStorageRefresh';
 import './CategoryView.css';
 
 const CATEGORY_META = {
@@ -31,20 +31,21 @@ const CATEGORY_META = {
 
 export default function CategoryView() {
   const { slug } = useParams();
-  const [products, setProducts] = useState([]);
+  useStorageRefresh();
+  const products = getPublicProducts();
   const [conditionFilter, setConditionFilter] = useState('all');
   const [sortBy, setSortBy] = useState('recent');
   const [searchFilter, setSearchFilter] = useState('');
 
   const meta = CATEGORY_META[slug] || {
-    title: 'Recursos Universitarios',
+    title: getCategories().find(category => category.id === slug)?.name || 'Recursos Universitarios',
     subtitle: 'Explora todos los artículos académicos disponibles.',
     icon: 'category'
   };
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    setProducts(getProducts());
+
   }, [slug]);
 
   // Filtrado de productos de esta categoría
@@ -63,9 +64,9 @@ export default function CategoryView() {
 
   // Ordenamiento
   if (sortBy === 'lowest') {
-    filtered.sort((a, b) => Number(a.price) - Number(b.price));
+    filtered.sort((a, b) => Number(b.featured) - Number(a.featured) || Number(a.price) - Number(b.price));
   } else if (sortBy === 'highest') {
-    filtered.sort((a, b) => Number(b.price) - Number(a.price));
+    filtered.sort((a, b) => Number(b.featured) - Number(a.featured) || Number(b.price) - Number(a.price));
   }
 
   return (
@@ -165,7 +166,9 @@ export default function CategoryView() {
               title={prod.title}
               category={meta.title}
               condition={prod.condition}
-              price={prod.price}
+              price={Number(prod.price)}
+              featured={prod.featured}
+              type={prod.type}
               currency={prod.currency === '$' ? 'S/' : (prod.currency || 'S/')}
               rating={prod.rating}
               image={prod.image}

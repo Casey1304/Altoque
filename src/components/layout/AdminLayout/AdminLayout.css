@@ -1,0 +1,9 @@
+/* Admin Layout Custom Styles */
+.admin-sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.admin-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(114, 120, 126, 0.2);
+  border-radius: 4px;
+}

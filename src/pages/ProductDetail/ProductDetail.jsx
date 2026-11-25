@@ -2,27 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import MainLayout from '../../components/layout/MainLayout/MainLayout';
 import ProductCard from '../../components/shared/ProductCard/ProductCard';
-import { getProductById, getProducts, createQuickChat, addToCart } from '../../services/storage';
+import { getProductById, getProducts, createQuickChat, isFavorite, toggleFavorite, getCurrentUser, startOperation, reportProduct, isListingActive, recordView } from '../../services/storage';
 import './ProductDetail.css';
+import { useStorageRefresh } from '../../services/useStorageRefresh';
 
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [product, setProduct] = useState(null);
+  useStorageRefresh();
+  const listing = getProductById(id);
+  const product = listing && isListingActive(listing) ? listing : null;
   const [selectedImage, setSelectedImage] = useState('');
   const [quickMessage, setQuickMessage] = useState('');
-  const [similarProducts, setSimilarProducts] = useState([]);
-  const [addedToCartToast, setAddedToCartToast] = useState(false);
+  const [feedback, setFeedback] = useState('');
+  const favorite = isFavorite(id);
+  const similarProducts = product ? getProducts().filter(item =>
+    isListingActive(item) && String(item.id) !== id && item.category === product.category).slice(0, 3) : [];
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    const prod = getProductById(id);
-    if (prod) {
-      setProduct(prod);
-      setSelectedImage(prod.image);
-      const all = getProducts();
-      setSimilarProducts(all.filter(p => String(p.id) !== String(id) && p.category === prod.category).slice(0, 3));
-    }
+    const item = getProductById(id);
+    if (item && isListingActive(item)) recordView(id);
   }, [id]);
 
   if (!product) {
@@ -42,14 +42,23 @@ export default function ProductDetail() {
   const handleSendMessage = (textToSend) => {
     const text = textToSend || quickMessage;
     if (!text.trim()) return;
-    createQuickChat(product.title, text.trim(), product.seller);
-    navigate('/mensajes');
+    if (!getCurrentUser()) return navigate("/login");
+    try {
+      createQuickChat(product.title, text, product.seller, product.id);
+      navigate('/mensajes');
+    } catch (error) {
+      setFeedback(error.message);
+    }
   };
 
-  const handleAddToCart = () => {
-    addToCart(product);
-    setAddedToCartToast(true);
-    setTimeout(() => setAddedToCartToast(false), 2500);
+  const handleStartOperation = () => {
+    if (!getCurrentUser()) return navigate('/login');
+    try {
+      startOperation(product.id);
+      setFeedback('Operación registrada. Cada estudiante puede confirmarla desde su historial.');
+    } catch (error) {
+      setFeedback(error.message);
+    }
   };
 
   const thumbnails = product.thumbnails && product.thumbnails.length > 0 
@@ -58,15 +67,24 @@ export default function ProductDetail() {
 
   return (
     <MainLayout>
-      {/* Toast de agregado a la bolsa */}
-      {addedToCartToast && (
-        <div className="fixed bottom-20 right-6 z-50 bg-primary text-on-primary px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 animate-bounce">
+      {/* Resultado de la acción */}
+      {feedback && (
+        <div role="status" className="fixed bottom-20 right-6 z-50 bg-primary text-on-primary px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 ">
           <span className="material-symbols-outlined text-secondary-fixed">check_circle</span>
-          <span className="font-label-bold text-body-sm">¡Añadido a tu bolsa de intercambio!</span>
+          <span className="font-label-bold text-body-sm">{feedback}</span>
         </div>
       )}
 
-      {/* Breadcrumb & Back Action */}
+      <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
+        <span>{product.type === 'intercambio' ? 'Intercambio' : 'Venta'}. Coordina el acuerdo y la entrega por chat.</span>
+        {(!product.ownerId || product.ownerId !== getCurrentUser()?.id) && <button className="underline text-secondary" onClick={() => {
+          if (!getCurrentUser()) return navigate('/login');
+          const reason = window.prompt('Motivo para reportar la publicación');
+          if (!reason) return;
+          try { reportProduct(product.id, reason); setFeedback('Reporte enviado.'); }
+          catch (error) { setFeedback(error.message); }
+        }}>Reportar publicación</button>}
+      </div>
       <div className="flex items-center space-x-2 text-on-surface-variant mb-stack-lg">
         <button 
           onClick={() => navigate(-1)} 
@@ -90,7 +108,7 @@ export default function ProductDetail() {
             <img 
               alt={product.title} 
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
-              src={selectedImage} 
+              src={selectedImage || product.image}
             />
             {/* Condition Badge */}
             <div className="absolute top-4 left-4 bg-surface/90 backdrop-blur-sm px-3 py-1 rounded-full border border-surface-variant shadow-sm flex items-center">
@@ -173,14 +191,31 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {/* Botón de añadir a la bolsa */}
+            {/* Acciones de la publicación */}
             <div className="mb-stack-md flex gap-2">
               <button
-                onClick={handleAddToCart}
+                onClick={handleStartOperation}
+                disabled={Boolean(product.ownerId && product.ownerId === getCurrentUser()?.id)}
                 className="flex-1 py-3 px-4 rounded-lg bg-surface-container border border-secondary text-primary font-label-bold text-label-bold hover:bg-secondary-container transition-colors flex items-center justify-center gap-2 active:scale-95"
               >
                 <span className="material-symbols-outlined text-[20px]">shopping_bag</span>
-                <span>Añadir a mi bolsa</span>
+                <span>Registrar operación</span>
+              </button>
+              <button
+                onClick={() => {
+                  if (!getCurrentUser()) return navigate("/login");
+                  toggleFavorite(product.id);
+                }}
+                className={`px-4 py-3 rounded-lg border transition-all flex items-center justify-center active:scale-95 ${
+                  favorite
+                    ? 'bg-error-container text-error border-error shadow-sm'
+                    : 'bg-surface-container border-outline-variant text-on-surface-variant hover:text-error hover:border-error'
+                }`}
+                title={favorite ? "Quitar de favoritos" : "Guardar en favoritos"}
+              >
+                <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: favorite ? "'FILL' 1" : "'FILL' 0" }}>
+                  favorite
+                </span>
               </button>
             </div>
 

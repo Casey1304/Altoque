@@ -2,39 +2,48 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import MainLayout from '../../components/layout/MainLayout/MainLayout';
 import { INITIAL_SELLER } from '../../services/mockData';
-import { getSellerReviews, addSellerReview, createQuickChat } from '../../services/storage';
+import { getSellerReviews, addSellerReview, createQuickChat, canReview, getProducts, getStudents, getCurrentUser, getAccountProfile, getOperations } from '../../services/storage';
 import './SellerProfile.css';
+import { useStorageRefresh } from '../../services/useStorageRefresh';
 
 export default function SellerProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [seller, setSeller] = useState(INITIAL_SELLER);
-  const [reviews, setReviews] = useState([]);
+  useStorageRefresh();
+  const reviews = getSellerReviews(id);
+  const profile = getProducts().find(product => product.seller?.id === id)?.seller ||
+    getStudents().find(student => student.id === id) || getAccountProfile(id);
+  const seller = id === INITIAL_SELLER.id ? INITIAL_SELLER : {
+    id, name: profile?.name || 'Perfil no disponible', avatar: profile?.avatar,
+    degree: profile?.degree || profile?.faculty || 'Estudiante UTP',
+    rating: reviews.length ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1) : 'Sin reseñas',
+    tradesCount: getOperations().filter(operation => operation.completedAt && operation.participants.includes(id)).length
+  };
   const [newRating, setNewRating] = useState(5);
   const [newComment, setNewComment] = useState('');
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    setSeller(INITIAL_SELLER);
-    setReviews(getSellerReviews());
-  }, [id]);
+  useEffect(() => { window.scrollTo(0, 0); }, [id]);
 
   const handleReviewSubmit = (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
 
-    const updated = addSellerReview({
-      rating: newRating,
-      comment: newComment.trim()
-    });
-    setReviews(updated);
+    try {
+      addSellerReview({ recipientId: id, rating: newRating, comment: newComment });
+      setError('');
+    } catch (error) {
+      setError(error.message);
+      return;
+    }
     setNewComment('');
     setReviewSubmitted(true);
     setTimeout(() => setReviewSubmitted(false), 3000);
   };
 
   const handleContactSeller = () => {
+    if (!getCurrentUser()) return navigate("/login");
     createQuickChat("Contacto de Perfil", `Hola ${seller.name}, me gustaría consultar sobre tus artículos.`, seller);
     navigate('/mensajes');
   };
@@ -91,7 +100,7 @@ export default function SellerProfile() {
             <div className="w-full mt-6 pt-6 border-t border-outline-variant flex flex-col gap-3 text-left">
               <div className="flex items-center justify-between">
                 <span className="text-on-surface-variant font-label-caps text-label-caps font-semibold">Miembro desde</span>
-                <span className="text-on-surface font-label-bold text-label-bold">{seller.memberSince}</span>
+                <span className="text-on-surface font-label-bold text-label-bold">{seller.memberSince || '—'}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-on-surface-variant font-label-caps text-label-caps font-semibold">Intercambios realizados</span>
@@ -100,7 +109,7 @@ export default function SellerProfile() {
               <div className="mt-2">
                 <span className="block text-on-surface-variant font-label-caps text-label-caps mb-1 font-semibold">Sobre mí</span>
                 <p className="text-on-surface font-body-sm text-body-sm italic leading-relaxed bg-surface-container-low p-3 rounded-lg border border-outline-variant/40">
-                  "{seller.bio}"
+                  {seller.bio || "Perfil de la comunidad universitaria."}
                 </p>
               </div>
             </div>
@@ -123,6 +132,7 @@ export default function SellerProfile() {
               Deja un comentario sobre el vendedor
             </h2>
 
+            {error && <p role="alert">{error}</p>}
             {reviewSubmitted && (
               <div className="mb-4 p-3 bg-secondary-container text-on-secondary-container rounded-lg font-label-bold text-body-sm flex items-center gap-2">
                 <span className="material-symbols-outlined">check_circle</span>
@@ -130,7 +140,7 @@ export default function SellerProfile() {
               </div>
             )}
 
-            <form onSubmit={handleReviewSubmit} className="flex flex-col gap-4">
+            {canReview(id) && <form onSubmit={handleReviewSubmit} className="flex flex-col gap-4">
               <div>
                 <label className="block font-label-bold text-label-bold text-on-surface mb-2 font-bold">
                   Puntuación de la experiencia
@@ -180,7 +190,7 @@ export default function SellerProfile() {
                   Publicar comentario
                 </button>
               </div>
-            </form>
+            </form>}
           </div>
 
           {/* Review List */}

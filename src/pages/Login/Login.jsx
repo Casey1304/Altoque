@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { loginUser } from '../../services/storage';
+import { authenticateUser } from '../../services/storage';
 import loginIllustration from '../../assets/login-illustration.png';
 import './Login.css';
 
@@ -10,8 +10,22 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [selectedDemoRole, setSelectedDemoRole] = useState(null);
 
-  const handleSubmit = (e) => {
+  const handleQuickFill = (roleType) => {
+    setError('');
+    if (roleType === 'client') {
+      setEmail('cliente@altoque.com');
+      setPassword('Cliente123');
+      setSelectedDemoRole('client');
+    } else if (roleType === 'admin') {
+      setEmail('admin@altoque.com');
+      setPassword('Admin123');
+      setSelectedDemoRole('admin');
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -26,11 +40,15 @@ export default function Login() {
     }
 
     setLoading(true);
-    setTimeout(() => {
-      loginUser(email, password);
+    try {
+      const result = await authenticateUser(email, password);
+      if (!result.success) return setError(result.message);
+      navigate(result.role === 'admin' ? '/admin' : '/');
+    } catch (error) {
+      setError(error.message);
+    } finally {
       setLoading(false);
-      navigate('/');
-    }, 400);
+    }
   };
 
   return (
@@ -40,25 +58,65 @@ export default function Login() {
         className="w-full md:w-1/2 flex items-center justify-center p-margin-mobile md:p-margin-desktop bg-surface-container-lowest" 
         style={{ background: 'linear-gradient(135deg, rgb(249, 249, 255) 0%, rgb(240, 243, 255) 100%)' }}
       >
-        <main className="w-full max-w-[440px] bg-surface-container-lowest rounded-xl p-8 md:p-10 shadow-2xl border border-outline-variant/30 relative z-10">
-          <header className="flex flex-col items-center mb-stack-lg text-center">
-            <Link to="/" className="w-24 mb-stack-md border border-outline-variant flex items-center justify-center bg-surface-container-low rounded-lg p-2 hover:opacity-90 transition-opacity">
+        <main className="w-full max-w-[460px] bg-surface-container-lowest rounded-2xl p-8 md:p-10 shadow-2xl border border-outline-variant/30 relative z-10">
+          <header className="flex flex-col items-center mb-6 text-center">
+            <Link to="/" className="w-24 mb-4 border border-outline-variant flex items-center justify-center bg-surface-container-low rounded-lg p-2 hover:opacity-90 transition-opacity">
               <img 
                 alt="AlToque Logo" 
                 className="w-full h-full object-contain" 
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuDePoHICXj1dVioq1tg-FYw-0SQ6pB3jfRAOGnl10N3_l9ZGr4_OmAbh4gMztTT9l4MVzRV7cflgU0EJwBaAS8kovnXnpM0I5sg8FGuFsBHakZ1hZIzdNdYAWyQeqB_GE5QRElcUl7iE9DX5ay60xGkWxUBnRbBRWmp7R_YkFYHL4B02s76ayCz67-wpSP7jpKUEk0a0uos4DRVgukBqdW3IObIQBWyuTqWmaukH33nt5DO5m7675rHIDM5dYrj5hoxrg" 
               />
             </Link>
-            <h1 className="font-headline-md text-headline-md text-primary mb-2 hidden md:block font-bold">
+            <h1 className="font-headline-md text-headline-md text-primary mb-1 font-bold text-2xl">
               Bienvenido a AlToque
             </h1>
-            <h1 className="font-headline-lg-mobile text-headline-lg-mobile text-primary mb-2 md:hidden font-bold">
-              Bienvenido a AlToque
-            </h1>
-            <p className="font-body-md text-body-md text-on-surface-variant">
-              Inicia sesión con tu cuenta universitaria.
+            <p className="font-body-md text-body-md text-on-surface-variant text-sm">
+              Inicia sesión con tu cuenta universitaria UTP.
             </p>
           </header>
+
+          {/* Accesos rápidos con cuentas demo */}
+          <div className="mb-6 p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/40 flex flex-col gap-2">
+            <span className="font-label-caps text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">
+              Cuentas de Demostración (1 Clic):
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleQuickFill('client')}
+                className={`py-2 px-2.5 rounded-lg text-left text-xs font-semibold flex items-center gap-1.5 transition-all border ${
+                  selectedDemoRole === 'client'
+                    ? 'bg-secondary text-white border-secondary shadow-xs'
+                    : 'bg-surface-container-lowest text-primary border-outline-variant/50 hover:bg-surface-container'
+                }`}
+                title="Rellenar cuenta de Estudiante Cliente"
+              >
+                <span className="material-symbols-outlined text-[16px]">school</span>
+                <span className="truncate">Estudiante (Cliente)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickFill('admin')}
+                className={`py-2 px-2.5 rounded-lg text-left text-xs font-semibold flex items-center gap-1.5 transition-all border ${
+                  selectedDemoRole === 'admin'
+                    ? 'bg-primary text-white border-primary shadow-xs'
+                    : 'bg-surface-container-lowest text-primary border-outline-variant/50 hover:bg-surface-container'
+                }`}
+                title="Rellenar cuenta de Administrador UTP"
+              >
+                <span className="material-symbols-outlined text-[16px]">shield_person</span>
+                <span className="truncate">Administrador</span>
+              </button>
+            </div>
+            {selectedDemoRole && (
+              <span className="text-[11px] text-secondary font-medium">
+                {selectedDemoRole === 'admin'
+                  ? '🛡️ Cuenta Administrador: admin@altoque.com (Redirige a /admin)'
+                  : '🎓 Cuenta Cliente de prueba (excepción al correo institucional): cliente@altoque.com (Redirige al marketplace /)'}
+              </span>
+            )}
+          </div>
 
           {error && (
             <div className="mb-4 p-3 rounded-lg bg-error-container text-on-error-container text-body-sm font-semibold flex items-center gap-2">
@@ -72,19 +130,22 @@ export default function Login() {
               <label className="font-label-bold text-label-bold text-on-surface" htmlFor="email">
                 Correo institucional o ID
               </label>
-              <div className="relative flex items-center bg-surface-container-low rounded border border-outline-variant input-focus-ring transition-all duration-200">
-                <span aria-hidden="true" className="material-symbols-outlined absolute left-3 text-outline">
+              <div className="relative flex items-center bg-surface-container-low rounded-xl border border-outline-variant input-focus-ring transition-all duration-200">
+                <span aria-hidden="true" className="material-symbols-outlined absolute left-3 text-outline text-[20px]">
                   mail
                 </span>
                 <input 
-                  className="w-full bg-transparent border-none pl-10 pr-4 py-3 font-body-md text-body-md text-on-surface placeholder-outline focus:ring-0 outline-none" 
+                  className="w-full bg-transparent border-none pl-10 pr-4 py-3 font-body-md text-body-md text-on-surface placeholder-outline focus:ring-0 outline-none text-sm"
                   id="email" 
                   name="email" 
-                  placeholder="correo institucional" 
+                  placeholder="correo@altoque.com"
                   required 
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setSelectedDemoRole(null);
+                  }}
                 />
               </div>
             </div>
@@ -93,26 +154,32 @@ export default function Login() {
               <label className="font-label-bold text-label-bold text-on-surface" htmlFor="password">
                 Contraseña
               </label>
-              <div className="relative flex items-center bg-surface-container-low rounded border border-outline-variant input-focus-ring transition-all duration-200">
-                <span aria-hidden="true" className="material-symbols-outlined absolute left-3 text-outline">
+              <div className="relative flex items-center bg-surface-container-low rounded-xl border border-outline-variant input-focus-ring transition-all duration-200">
+                <span aria-hidden="true" className="material-symbols-outlined absolute left-3 text-outline text-[20px]">
                   lock
                 </span>
                 <input 
-                  className="w-full bg-transparent border-none pl-10 pr-4 py-3 font-body-md text-body-md text-on-surface placeholder-outline focus:ring-0 outline-none" 
+                  className="w-full bg-transparent border-none pl-10 pr-4 py-3 font-body-md text-body-md text-on-surface placeholder-outline focus:ring-0 outline-none text-sm"
                   id="password" 
                   name="password" 
                   placeholder="••••••••" 
                   required 
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setSelectedDemoRole(null);
+                  }}
                 />
               </div>
               <div className="flex justify-end mt-1">
                 <a 
-                  className="font-label-bold text-label-bold text-primary hover:text-secondary transition-colors text-body-sm" 
+                  className="font-label-bold text-label-bold text-primary hover:text-secondary transition-colors text-xs"
                   href="#"
-                  onClick={(e) => { e.preventDefault(); alert("En modo demo, puedes ingresar con cualquier correo."); }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    alert("Cuentas de prueba:\n\n• Cliente: cliente@altoque.com (Clave: Cliente123)\n• Administrador: admin@altoque.com (Clave: Admin123)");
+                  }}
                 >
                   ¿Olvidaste tu contraseña?
                 </a>
@@ -120,18 +187,25 @@ export default function Login() {
             </div>
 
             <button 
-              className="w-full h-12 mt-2 bg-primary-container text-on-primary font-label-bold text-label-bold rounded flex items-center justify-center hover:bg-primary transition-colors duration-200 shadow-sm disabled:opacity-50" 
+              className="w-full h-12 mt-2 bg-primary text-on-primary font-label-bold text-label-bold rounded-xl flex items-center justify-center hover:bg-primary-container transition-all duration-200 shadow-sm disabled:opacity-50 font-bold"
               type="submit"
               disabled={loading}
             >
-              {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  Validando rol...
+                </span>
+              ) : (
+                'Iniciar Sesión'
+              )}
             </button>
           </form>
 
           <div className="text-center mt-6">
-            <p className="font-body-sm text-body-sm text-on-surface-variant">
+            <p className="font-body-sm text-body-sm text-on-surface-variant text-xs">
               ¿No tienes una cuenta? 
-              <Link className="font-label-bold text-label-bold text-primary hover:text-secondary-fixed-dim transition-colors ml-1" to="/registro">
+              <Link className="font-label-bold text-label-bold text-primary hover:text-secondary font-bold transition-colors ml-1" to="/registro">
                 Crear una cuenta
               </Link>
             </p>
